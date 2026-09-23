@@ -1,0 +1,72 @@
+/*
+ * The palette is defined once, in full, on bare :root — that is the state most
+ * readers are in, since "follow the system" stamps no attribute at all. The
+ * two blocks below redefine only the tokens, never a component's colour, so an
+ * explicit choice wins over the OS in both directions.
+ */
+
+:root {
+  --ground: #f2f3f0;
+  --surface: #fafaf8;
+  --ink: #1a2320;
+  --ink-soft: #5b6b65;
+  --rule: #dcdfd9;
+  --accent: #0e7c6b;
+  --accent-wash: #cfe7e1;
+  --hover: #eceee9;
+  --on-accent: #fafaf8;
+  --shadow: rgba(26, 35, 32, 0.14);
+  --code-wash: #e6ebe6;
+  --code-ink: #7a3b2e;
+  --callout-wash: #f5efdc;
+
+  --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  --serif: 'Literata', Georgia, 'Times New Roman', serif;
+
+  --rail-width: 238px;
+  --panel-width: 290px;
+  --topbar-height: 53px;
+  --player-height: 78px;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --ground: #10161a;
+    --surface: #161e23;
+    --ink: #e4eae8;
+    --ink-soft: #8c9c98;
+    --rule: #263238;
+    --accent: #3fd0b6;
+    --accent-wash: #16332e;
+    --hover: #1c262c;
+    --on-accent: #10161a;
+    --shadow: rgba(0, 0, 0, 0.5);
+    --code-wash: #1f2a30;
+    --code-ink: #f0a08c;
+    --callout-wash: #2a2618;
+
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --ground: #10161a;
+  --surface: #161e23;
+  --ink: #e4eae8;
+  --ink-soft: #8c9c98;
+  --rule: #263238;
+  --accent: #3fd0b6;
+  --accent-wash: #16332e;
+  --hover: #1c262c;
+  --on-accent: #10161a;
+  --shadow: rgba(0, 0, 0, 0.5);
+  --code-wash: #1f2a30;
+  --code-ink: #f0a08c;
+  --callout-wash: #2a2618;
+
+  color-scheme: dark;
+}
