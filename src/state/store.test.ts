@@ -1,9 +1,11 @@
 import 'fake-indexeddb/auto'
 // jsdom's File has no text(); Node's does, and matches what a browser hands over.
 import { File } from 'node:buffer'
-import { beforeEach, describe, expect, test } from 'vitest'
+import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { useStore } from './store'
 import { resetLibrary, saveDoc, saveProgress } from '../lib/db'
+import { COMPACT_BUILD } from '../lib/backends/browser'
+import { modelFiles } from '../lib/backends/modelStore'
 
 beforeEach(async () => {
   await resetLibrary()
@@ -40,5 +42,21 @@ describe('opening documents', () => {
     expect(blocks).toHaveLength(2)
     expect(sentences.map((s) => s.text)).toEqual(['One.', 'Two.', 'Three.'])
     expect(index).toBe(2)
+  })
+})
+
+describe('the voice model', () => {
+  test('a model already downloaded is ready from the start', async () => {
+    const stored = new Set(modelFiles(COMPACT_BUILD))
+    vi.stubGlobal('caches', {
+      open: async () => ({
+        match: async (url: string) => (stored.has(url) ? new Response('') : undefined),
+      }),
+    })
+
+    await useStore.getState().init()
+    await vi.waitFor(() => expect(useStore.getState().modelState).toBe('ready'))
+    expect(useStore.getState().modelBuild).toBe(COMPACT_BUILD)
+    vi.unstubAllGlobals()
   })
 })

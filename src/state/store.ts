@@ -12,6 +12,7 @@ import {
   type DownloadProgress,
   type ModelBuild,
 } from '../lib/backends/browser'
+import { createModelStore, resolveBuild } from '../lib/backends/modelStore'
 import { parseFile, parsePastedText, type ParsedDoc } from '../lib/parse'
 
 export type Message = { text: string; tone: 'error' | 'info' }
@@ -67,6 +68,16 @@ type State = {
  */
 let built: SpeechEngine | null | undefined
 
+const modelStore = createModelStore()
+
+let buildChoice: Promise<ModelBuild> | null = null
+
+/** Decided once, on first ask, and preferring a build already downloaded. */
+function modelBuild(): Promise<ModelBuild> {
+  buildChoice ??= resolveBuild(modelStore, chooseBuild)
+  return buildChoice
+}
+
 function engine(): SpeechEngine | null {
   if (built === undefined) built = createEngine()
   return built
@@ -80,12 +91,10 @@ function createEngine(): SpeechEngine | null {
   }
 
   const backend = createBrowserBackend({
-    // Settled before the model is first needed; the default is only a
-    // placeholder for the moment before detection finishes.
-    get build() {
-      return useStore.getState().modelBuild
-    },
+    build: modelBuild,
+    store: modelStore,
     onProgress: (progress) => {
+      if (useStore.getState().modelState === 'ready') return
       useStore.setState({ modelProgress: progress, modelState: 'downloading' })
     },
   })
@@ -218,9 +227,15 @@ export const useStore = create<State>((set, get) => {
       const voice = pickDefaultVoice(voices, settings.voiceId)
       engine()?.setVoice(voice)
 
-      // Knowing whether this machine has WebGPU decides which build a reader
-      // would be asked to download, so the panel can say the size up front.
-      void chooseBuild().then((modelBuild) => set({ modelBuild }))
+      // Which build a reader would be asked to download, so the panel can say
+      // the size up front, or that there is nothing left to download.
+      void modelBuild().then(async (build) => {
+        const cached = await modelStore.has(build)
+        set((s) => ({
+          modelBuild: build,
+          modelState: cached && s.modelState === 'absent' ? 'ready' : s.modelState,
+        }))
+      })
 
       set({
         settings: { ...settings, voiceId: voice?.id ?? null },

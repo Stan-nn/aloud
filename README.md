@@ -13,16 +13,20 @@ press play, and then works offline (see *Voices* below). The voices your
 operating system has installed are not used.
 
 ```bash
-npm install
-npm run dev        # http://localhost:5173
+pnpm install
+pnpm dev           # http://localhost:5173
+pnpm desktop:dev   # the same app in its Tauri desktop shell
 ```
 
 | | |
 |---|---|
-| `npm run dev` | Run it |
-| `npm test` | 369 tests |
-| `npm run typecheck` | TypeScript, no emit |
-| `npm run build` | Production bundle into `dist/` |
+| `pnpm dev` | Run it in the browser |
+| `pnpm desktop:dev` | Run it as a desktop app |
+| `pnpm test` | 394 tests |
+| `cargo test --manifest-path src-tauri/Cargo.toml` | The desktop app's model cache |
+| `pnpm typecheck` | TypeScript, no emit |
+| `pnpm build` | Production bundle into `dist/` |
+| `pnpm desktop:build` | Installable desktop app |
 
 ## What it does
 
@@ -59,12 +63,27 @@ Nothing downloads until you first press play. Then, once:
 | | With WebGPU | Without WebGPU |
 |---|---|---|
 | Model | 310 MB (`fp32`, full precision) | 88 MB (`q8`) |
-| ONNX runtime | ~22 MB | ~22 MB |
+| ONNX runtime | Ships with the app | Ships with the app |
 | Speed | Fast enough to read continuously | Slower; may stall between sentences |
 
 The app detects WebGPU and picks the build that will actually be usable, and
-tells you the size before you commit. Afterwards the model is cached by the
-browser and the voice works offline.
+tells you the size before you commit. Once a build is downloaded it is the one
+used from then on, even if detection later says otherwise, so it is never
+downloaded twice.
+
+Where it is kept:
+
+- **Desktop app:** as plain files in the app's data folder, shared by
+  `pnpm desktop:dev` and the installed app. Delete the folder to download
+  again.
+  - macOS: `~/Library/Application Support/com.github.stan-nn.aloud/model-cache`
+  - Windows: `%LOCALAPPDATA%\com.github.stan-nn.aloud\model-cache`
+  - Linux: `~/.local/share/com.github.stan-nn.aloud/model-cache`
+- **Browser:** in the browser's cache storage for the site (`transformers-cache`
+  and `kokoro-voices`), with persistent storage requested so the browser does
+  not clear it to free space. Clearing the site's data downloads it again.
+
+Either way the voice then works offline.
 
 ### On privacy
 
@@ -182,4 +201,7 @@ listed here is what tests cannot prove.
    start, report progress, finish, and then speak? Is generation fast enough
    to keep up at 1.0×, or does it stall between sentences?
 8. Pause, resume, next/previous and click-to-jump during playback.
-9. Reload after the model is cached: the second run should not re-download.
+9. Reload after the model is cached: the second run should not re-download,
+   and should still speak with the network off. In the desktop app, check the
+   same after `pnpm desktop:build`: the installed app reuses what
+   `pnpm desktop:dev` downloaded.

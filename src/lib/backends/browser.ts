@@ -1,5 +1,6 @@
 import { KokoroBackend, type AudioPlayer, type KokoroModel } from './kokoro'
 import type { SpeechBackend } from '../speech'
+import type { ModelStore } from './modelStore'
 
 /**
  * Where the app meets the browser.
@@ -99,13 +100,27 @@ export function createProgressAggregator(
 
 export async function loadKokoroModel(
   build: ModelBuild,
+  store: ModelStore,
   onProgress: (progress: DownloadProgress) => void,
 ): Promise<KokoroModel> {
-  const { KokoroTTS } = await import('kokoro-js')
+  const [{ KokoroTTS }, { env }] = await Promise.all([
+    import('kokoro-js'),
+    import('@huggingface/transformers'),
+  ])
+
+  // transformers.js points the ONNX runtime at a CDN, where the 22 MB wasm
+  // would only ever sit in the HTTP cache. Left alone, the runtime loads the
+  // copy Vite already bundles with the app.
+  env.backends.onnx.wasm!.wasmPaths = undefined
+  await store.prepare(env)
+
+  // transformers.js reports progress for files it reads from its cache too,
+  // which would announce a download that isn't happening.
+  const cached = await store.has(build)
   const tts = await KokoroTTS.from_pretrained(KOKORO_MODEL_ID, {
     dtype: build.dtype,
     device: build.device,
-    progress_callback: createProgressAggregator(onProgress),
+    progress_callback: cached ? undefined : createProgressAggregator(onProgress),
   })
 
   // kokoro-js types the voice as a union of its 28 names. The id reaching here
@@ -177,7 +192,9 @@ export function createAudioPlayer(): AudioPlayer {
 }
 
 export type BrowserBackendOptions = {
-  build: ModelBuild
+  /** Waited on, so nothing loads before the machine's build is known. */
+  build: () => Promise<ModelBuild>
+  store: ModelStore
   onProgress: (progress: DownloadProgress) => void
 }
 
@@ -185,7 +202,8 @@ export function createBrowserBackend(
   options: BrowserBackendOptions,
 ): SpeechBackend {
   return new KokoroBackend({
-    loadModel: () => loadKokoroModel(options.build, options.onProgress),
+    loadModel: async () =>
+      loadKokoroModel(await options.build(), options.store, options.onProgress),
     player: createAudioPlayer(),
   })
 }

@@ -36,7 +36,7 @@ Not yet run in a real browser with audio — see `README.md`.
 | Word text | `mammoth` | Clean `.docx` to structured text, keeps paragraph breaks |
 | Markdown / text | none | A small regex pass strips syntax |
 | Sentence splitting | `Intl.Segmenter` | Native. Handles "Dr. Smith" and "e.g." far better than splitting on periods, and costs zero bytes |
-| Speech | `kokoro-js` | An 82M-parameter open-weight model run locally via transformers.js. Downloaded once, then offline. Loaded dynamically so it costs the initial bundle nothing. The browser's own voices are not used |
+| Speech | `kokoro-js` | An 82M-parameter open-weight model run locally via transformers.js. Downloaded once, then offline: kept as files in the app's data folder on desktop (`src-tauri/src/model_cache.rs`), in the Cache API in the browser. Loaded dynamically so it costs the initial bundle nothing. The browser's own voices are not used |
 | Storage | `idb` over IndexedDB | Documents exceed the 5MB localStorage cap |
 | State | `zustand` | One store, no ceremony |
 | Tests | Vitest | Pure logic is written test-first |
